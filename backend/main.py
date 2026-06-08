@@ -55,7 +55,7 @@ def get_graph_context(query: str):
             cypher_query = """
             MATCH (n)-[r]->(m) 
             WHERE toLower(n.name) CONTAINS toLower($entity) OR toLower(m.name) CONTAINS toLower($entity)
-            RETURN n.name AS source, type(r) AS relationship, m.name AS target LIMIT 5
+            RETURN n.name AS source, type(r) AS relationship, m.name AS target LIMIT 30
             """
             result = session.run(cypher_query, entity=entity)
             for record in result:
