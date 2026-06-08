@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Graph RAG AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbar for a polished look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen flex flex-col font-sans">
+
+    <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-project-diagram text-blue-400 text-xl"></i>
+            <h1 class="text-xl font-semibold hidden sm:block">Graph RAG Assistant</h1>
+        </div>
+        
+        <div class="flex items-center gap-2 sm:gap-4">
+            <input type="file" id="pdfUpload" accept=".pdf" class="hidden" onchange="handleFileUpload(event)">
+            <button onclick="document.getElementById('pdfUpload').click()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-file-pdf"></i> <span class="hidden sm:inline">Upload PDF</span>
+            </button>
+
+            <div class="relative group">
+                <button class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <div class="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg border border-gray-700 hidden group-hover:block z-10">
+                    <button onclick="deleteDatabase()" class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 rounded-md flex items-center gap-2 transition">
+                        <i class="fa-solid fa-trash-can"></i> Wipe Database
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="chatBox" class="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6">
+        <div class="flex gap-4">
+            <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-robot text-sm"></i>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-2xl rounded-tl-none max-w-[85%] border border-gray-700">
+                <p>Hello! I am your Cricket Graph RAG Assistant. Upload a PDF to build the database, then ask me anything!</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="p-4 bg-gray-900 border-t border-gray-800">
+        <div class="max-w-4xl mx-auto relative">
+            <input type="text" id="userInput" placeholder="Ask a question..." 
+                class="w-full bg-gray-800 text-white rounded-xl pl-4 pr-12 py-4 border border-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()" class="absolute right-2 top-2 bottom-2 aspect-square bg-blue-600 hover:bg-blue-500 rounded-lg text-white transition flex items-center justify-center">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+        <p class="text-center text-xs text-gray-500 mt-2">Answers are generated using Gemini 2.5 Flash and Neo4j Graph Database.</p>
+    </footer>
+
+    <script>
+        // Use your live Render backend URL
+        const API_BASE_URL = "https://graph-rag-using-neo4j.onrender.com";
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+
+        // Helper to add a message to the chat UI
+        function appendMessage(sender, text, graphContext = null) {
+            const isUser = sender === 'user';
+            const bubbleHtml = `
+                <div class="flex gap-4 ${isUser ? 'flex-row-reverse' : ''}">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isUser ? 'bg-gray-600' : 'bg-blue-600'}">
+                        <i class="fa-solid ${isUser ? 'fa-user' : 'fa-robot'} text-sm"></i>
+                    </div>
+                    <div class="${isUser ? 'bg-gray-700' : 'bg-gray-800 border border-gray-700'} p-4 rounded-2xl ${isUser ? 'rounded-tr-none' : 'rounded-tl-none'} max-w-[85%]">
+                        <p class="whitespace-pre-wrap">${text}</p>
+                        ${graphContext && graphContext.length > 0 ? `
+                            <details class="mt-3 text-sm text-gray-400 bg-gray-900 p-2 rounded border border-gray-700 cursor-pointer">
+                                <summary class="font-medium hover:text-gray-300">View Graph Context (${graphContext.length} chunks)</summary>
+                                <ul class="mt-2 list-disc list-inside space-y-1">
+                                    ${graphContext.map(ctx => `<li>${ctx}</li>`).join('')}
+                                </ul>
+                            </details>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            chatBox.insertAdjacentHTML('beforeend', bubbleHtml);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // --- ENDPOINT 1: SEND MESSAGE (/ask) ---
+        async function sendMessage() {
+            const query = userInput.value.trim();
+            if (!query) return;
+
+            // 1. Show user message
+            appendMessage('user', query);
+            userInput.value = '';
+
+            // 2. Add loading indicator
+            const loadingId = 'loading-' + Date.now();
+            chatBox.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="flex gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-robot text-sm text-white animate-pulse"></i>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-2xl rounded-tl-none border border-gray-700 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> <span class="text-gray-400">Searching graph...</span>
+                    </div>
+                </div>
+            `);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                // 3. Call Backend
+                const response = await fetch(`${API_BASE_URL}/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+
+                // 4. Show Bot message with graph context
+                appendMessage('bot', data.answer, data.graph_context);
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                appendMessage('bot', "❌ Error connecting to the server. Ensure your Render backend is live.");
+            }
+        }
+
+        // --- ENDPOINT 2: UPLOAD PDF (/upload) ---
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            appendMessage('user', `*Uploaded file: ${file.name}*`);
+            const loadingId = 'loading-upload-' + Date.now();
+            
+            chatBox.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="flex gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-robot text-sm text-white"></i>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-2xl rounded-tl-none border border-gray-700">
+                        <i class="fa-solid fa-cloud-arrow-up fa-bounce text-blue-500"></i> <span class="text-gray-400 ml-2">Extracting Knowledge Graph... This takes a few seconds.</span>
+                    </div>
+                </div>
+            `);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+                
+                if (response.ok) {
+                    appendMessage('bot', `✅ **Success!**\n${data.message}`);
+                } else {
+                    appendMessage('bot', `❌ **Failed:** ${data.detail || 'Could not process PDF.'}`);
+                }
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                appendMessage('bot', "❌ Error connecting to the server during upload.");
+            }
+            // Reset file input so you can upload the same file again if needed
+            event.target.value = '';
+        }
+
+        // --- ENDPOINT 3: DELETE DATABASE (/delete) ---
+        async function deleteDatabase() {
+            const confirmWipe = confirm("Are you sure you want to delete all nodes and relationships? This cannot be undone.");
+            if (!confirmWipe) return;
+
+            appendMessage('user', "*Triggered database wipe*");
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/delete`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmation: "confirm" })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    appendMessage('bot', `🗑️ **${data.message}** The Graph Database is now empty.`);
+                } else {
+                    appendMessage('bot', `❌ **Failed to wipe:** ${data.detail}`);
+                }
+            } catch (error) {
+                appendMessage('bot', "❌ Error connecting to the server.");
+            }
+        }
+    </script>
+</body>
+</html>
