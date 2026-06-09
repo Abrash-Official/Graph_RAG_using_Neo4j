@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph RAG vs Standard RAG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #f8fafc; /* slate-50 */
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(20px);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding-bottom: 6rem; /* Space for mobile scrolling past nav */
+        }
+
+        .slide::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background-color: #475569;
+            border-radius: 10px;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* Vector Dots Animation */
+        .dot {
+            animation: float 6s infinite ease-in-out;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px) translateX(0px); }
+            50% { transform: translateY(-10px) translateX(5px); }
+            100% { transform: translateY(0px) translateX(0px); }
+        }
+
+        /* Graph Pulse Animation */
+        .node-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.4)); }
+            50% { filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.8)); }
+            100% { filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.4)); }
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased h-screen w-screen selection:bg-cyan-500 selection:text-white flex items-center justify-center">
+
+    <!-- Progress Bar -->
+    <div class="fixed top-0 left-0 h-1 bg-slate-800 w-full z-50">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-purple-500 w-0 transition-all duration-300"></div>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-50 flex gap-2 items-center bg-slate-800/90 p-1.5 md:p-2 rounded-full border border-slate-700 backdrop-blur-md shadow-xl">
+        <button onclick="prevSlide()" class="p-2.5 md:p-3 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 transition-colors text-slate-300 hover:text-white focus:outline-none">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        <!-- Slide Number Indicator -->
+        <div id="slide-number" class="text-slate-300 font-mono text-sm font-semibold min-w-[3.5rem] text-center">
+            1 / 6
+        </div>
+        <button onclick="nextSlide()" class="p-2.5 md:p-3 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 transition-colors text-slate-300 hover:text-white focus:outline-none">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- Slide Indicators -->
+    <div id="indicators" class="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+        <!-- JS will populate these -->
+    </div>
+
+    <!-- Slides Container -->
+    <div id="slides-container" class="relative w-full h-full max-w-6xl mx-auto py-6 md:py-12">
+
+        <!-- Slide 1: Title -->
+        <div class="slide active px-6 md:px-8 justify-start md:justify-center items-center text-center pt-10 md:pt-0">
+            <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-6 mt-8 md:mt-0">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Graph RAG</span> 
+                <span class="text-slate-400 text-4xl md:text-5xl mx-2 md:mx-4">vs.</span> 
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-500">Standard RAG</span>
+            </h1>
+            <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mt-4 leading-relaxed">
+                A visual guide to understanding retrieval architectures, data fit, and implementation tradeoffs.
+            </p>
+        </div>
+
+        <!-- Slide 2: Standard RAG (Visual) -->
+        <div class="slide px-6 md:px-8 justify-start md:justify-center pt-10 md:pt-0">
+            <h2 class="text-3xl font-semibold mb-2 text-blue-400 flex items-center gap-3 mt-8 md:mt-0">
+                <i data-lucide="database"></i> Standard RAG Architecture
+            </h2>
+            <p class="text-slate-400 mb-8">Retrieves information based on conceptual similarity (Vectors/Distance).</p>
+
+            <div class="flex flex-col md:flex-row gap-6 md:gap-12 items-center justify-center mt-4 w-full max-w-5xl mx-auto">
+                <!-- Data Source -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center text-center h-64 w-full md:w-2/5 justify-center">
+                    <i data-lucide="file-text" class="w-12 h-12 text-slate-300 mb-4"></i>
+                    <h3 class="font-medium text-lg mb-2">Unstructured Data</h3>
+                    <p class="text-sm text-slate-400">Text is broken down into raw, flexible chunks.</p>
+                </div>
+                
+                <div class="flex justify-center text-slate-600 shrink-0 transform rotate-90 md:rotate-0">
+                    <i data-lucide="arrow-right" class="w-8 h-8 md:w-10 md:h-10"></i>
+                </div>
+
+                <!-- Vector Space Visual -->
+                <div class="glass-panel p-6 rounded-2xl relative h-64 w-full md:w-2/5 border-blue-500/30 overflow-hidden group">
+                    <div class="absolute inset-0 bg-blue-500/5"></div>
+                    <h3 class="absolute top-4 left-4 font-medium text-sm text-blue-300">Vector Space</h3>
+                    
+                    <!-- SVG Vector Field -->
+                    <svg class="w-full h-full absolute inset-0 pt-10" viewBox="0 0 100 100">
+                        <circle cx="20" cy="30" r="2" class="fill-blue-400 dot" style="animation-delay: 0s" />
+                        <circle cx="25" cy="35" r="3" class="fill-blue-500 dot" style="animation-delay: 0.5s" />
+                        <circle cx="80" cy="60" r="2" class="fill-blue-400 dot" style="animation-delay: 1s" />
+                        <circle cx="70" cy="80" r="3" class="fill-slate-600 dot" style="animation-delay: 1.5s" />
+                        <circle cx="40" cy="70" r="2" class="fill-slate-600 dot" style="animation-delay: 2s" />
+                        <circle cx="60" cy="20" r="2.5" class="fill-slate-600 dot" style="animation-delay: 0.2s" />
+                        
+                        <!-- Query area -->
+                        <circle cx="25" cy="32" r="15" fill="none" stroke="rgba(56, 189, 248, 0.4)" stroke-width="0.5" stroke-dasharray="2" />
+                    </svg>
+                    
+                    <div class="absolute bottom-4 right-4 text-xs text-slate-400 max-w-[120px] text-right">
+                        Locates concepts close to each other in meaning.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Graph RAG (Visual) -->
+        <div class="slide px-6 md:px-8 justify-start md:justify-center pt-10 md:pt-0">
+            <h2 class="text-3xl font-semibold mb-2 text-purple-400 flex items-center gap-3 mt-12 md:mt-0">
+                <i data-lucide="network"></i> Graph RAG Architecture
+            </h2>
+            <p class="text-slate-400 mb-8">Retrieves information based on explicit relationships and hierarchies.</p>
+
+            <div class="flex flex-col md:flex-row gap-6 md:gap-12 items-center justify-center mt-4 w-full max-w-5xl mx-auto">
+                <!-- Data Source -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center text-center h-64 w-full md:w-2/5 justify-center border-purple-500/20">
+                    <i data-lucide="sitemap" class="w-12 h-12 text-slate-300 mb-4"></i>
+                    <h3 class="font-medium text-lg mb-2">Entities & Relations</h3>
+                    <p class="text-sm text-slate-400">Data must be structured into strict nodes and edges.</p>
+                </div>
+                
+                <div class="flex justify-center text-slate-600 shrink-0 transform rotate-90 md:rotate-0">
+                    <i data-lucide="arrow-right" class="w-8 h-8 md:w-10 md:h-10"></i>
+                </div>
+
+                <!-- Graph Space Visual -->
+                <div class="glass-panel p-6 rounded-2xl relative h-64 w-full md:w-2/5 border-purple-500/30 overflow-hidden">
+                    <div class="absolute inset-0 bg-purple-500/5"></div>
+                    <h3 class="absolute top-4 left-4 font-medium text-sm text-purple-300">Knowledge Graph</h3>
+                    
+                    <!-- SVG Graph -->
+                    <svg class="w-full h-full absolute inset-0 pt-10" viewBox="0 0 100 100">
+                        <!-- Edges -->
+                        <line x1="30" y1="30" x2="70" y2="50" stroke="rgba(168, 85, 247, 0.4)" stroke-width="0.5" />
+                        <line x1="70" y1="50" x2="40" y2="80" stroke="rgba(168, 85, 247, 0.4)" stroke-width="0.5" />
+                        <line x1="30" y1="30" x2="40" y2="80" stroke="rgba(168, 85, 247, 0.4)" stroke-width="0.5" />
+                        <line x1="70" y1="50" x2="85" y2="25" stroke="rgba(168, 85, 247, 0.2)" stroke-width="0.5" />
+                        
+                        <!-- Nodes -->
+                        <circle cx="30" cy="30" r="4" class="fill-purple-500 node-pulse" />
+                        <text x="30" y="24" fill="#cbd5e1" font-size="4" text-anchor="middle">Company</text>
+                        
+                        <circle cx="70" cy="50" r="5" class="fill-pink-500 node-pulse" style="animation-delay: 0.5s" />
+                        <text x="70" y="43" fill="#cbd5e1" font-size="4" text-anchor="middle">Product</text>
+                        
+                        <circle cx="40" cy="80" r="3" class="fill-purple-400 node-pulse" style="animation-delay: 1s" />
+                        <text x="40" y="88" fill="#cbd5e1" font-size="4" text-anchor="middle">Vendor</text>
+
+                        <circle cx="85" cy="25" r="2" class="fill-slate-500" />
+                    </svg>
+
+                    <div class="absolute bottom-4 right-4 text-xs text-slate-400 max-w-[120px] text-right">
+                        Locates answers by traversing connected pathways.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: The Tradeoffs -->
+        <div class="slide px-6 md:px-8 justify-start md:justify-center pt-10 md:pt-0">
+            <h2 class="text-3xl font-semibold mb-10 flex items-center gap-3 mt-12 md:mt-0">
+                <i data-lucide="scale" class="text-emerald-400"></i> The Real-World Tradeoffs
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Standard RAG Box -->
+                <div class="glass-panel p-8 rounded-2xl border-l-4 border-l-blue-500">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i data-lucide="check-circle" class="text-blue-400 w-6 h-6"></i>
+                        <h3 class="text-xl font-medium text-white">Standard RAG</h3>
+                    </div>
+                    <ul class="space-y-4 text-slate-300">
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="zap" class="w-5 h-5 text-slate-500 shrink-0 mt-0.5"></i>
+                            <div>Easy to build and deploy quickly.</div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="layers" class="w-5 h-5 text-slate-500 shrink-0 mt-0.5"></i>
+                            <div>Flexible: Accepts new types of unstructured data automatically without code rewrites.</div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="pen-tool" class="w-5 h-5 text-slate-500 shrink-0 mt-0.5"></i>
+                            <div>Maintains the flow of natural human writing.</div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Graph RAG Box -->
+                <div class="glass-panel p-8 rounded-2xl border-l-4 border-l-purple-500 relative overflow-hidden">
+                    <div class="flex items-center gap-3 mb-6">
+                        <i data-lucide="alert-triangle" class="text-purple-400 w-6 h-6"></i>
+                        <h3 class="text-xl font-medium text-white">Graph RAG Challenges</h3>
+                    </div>
+                    <ul class="space-y-4 text-slate-300">
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="dollar-sign" class="w-5 h-5 text-red-400 shrink-0 mt-0.5"></i>
+                            <div><strong class="text-white">Incredibly expensive</strong> and difficult to build. Maintenance is very hard.</div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="lock" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong class="text-white">The Schema Trap:</strong> 
+                                If a new type of data is introduced, the underlying code and structure must be rewritten (unlike Standard RAG).
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="scissors" class="w-5 h-5 text-slate-500 shrink-0 mt-0.5"></i>
+                            <div>Can destroy the natural flow and nuance of human writing by forcing it into rigid nodes.</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Data Suitability -->
+        <div class="slide px-6 md:px-8 justify-start md:justify-center pt-10 md:pt-0">
+            <h2 class="text-3xl font-semibold mb-8 text-center mt-16 md:mt-0">Where does Graph RAG belong?</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto w-full">
+                
+                <!-- Terrible Data -->
+                <div class="space-y-6">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 font-medium">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i> Suboptimal Data
+                    </div>
+                    
+                    <div class="glass-panel p-5 rounded-xl flex flex-col gap-3 transition hover:bg-slate-800">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-800 p-3 rounded-lg shrink-0"><i data-lucide="scale" class="text-slate-400"></i></div>
+                            <div>
+                                <h4 class="font-medium text-slate-200">Legal Contracts & NDAs</h4>
+                                <p class="text-sm text-slate-500">Nuance is lost in extraction.</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs text-slate-400 border border-slate-700/50">
+                            <strong class="text-slate-300">Example:</strong> Summarizing highly nuanced breach-of-contract penalties.
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-xl flex flex-col gap-3 transition hover:bg-slate-800">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-800 p-3 rounded-lg shrink-0"><i data-lucide="message-square" class="text-slate-400"></i></div>
+                            <div>
+                                <h4 class="font-medium text-slate-200">Customer Support Logs</h4>
+                                <p class="text-sm text-slate-500">Angry tones and unstructured emotion.</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs text-slate-400 border border-slate-700/50">
+                            <strong class="text-slate-300">Example:</strong> Understanding an angry email laced with sarcasm ("Oh great, another delay!").
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-xl flex flex-col gap-3 transition hover:bg-slate-800">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-800 p-3 rounded-lg shrink-0"><i data-lucide="book-open" class="text-slate-400"></i></div>
+                            <div>
+                                <h4 class="font-medium text-slate-200">Literature, Blogs & Poetry</h4>
+                                <p class="text-sm text-slate-500">Requires natural flow, not strict relationships.</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs text-slate-400 border border-slate-700/50">
+                            <strong class="text-slate-300">Example:</strong> Capturing the overarching emotional tone and mood of a novel.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Data -->
+                <div class="space-y-6">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i> Optimal Data
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-xl flex flex-col gap-3 border border-purple-500/30 bg-purple-500/5 transition hover:bg-purple-500/10">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-purple-500/20 p-3 rounded-lg shrink-0"><i data-lucide="building-2" class="text-purple-300"></i></div>
+                            <div>
+                                <h4 class="font-medium text-purple-100">Corporate Hierarchies</h4>
+                                <p class="text-sm text-purple-300/70">Naturally structured as clear networks.</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs text-purple-300/80 border border-purple-500/20">
+                            <strong class="text-purple-200">Example:</strong> Tracing exactly who reports to the VP of Engineering.
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-xl flex flex-col gap-3 border border-purple-500/30 bg-purple-500/5 transition hover:bg-purple-500/10">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-purple-500/20 p-3 rounded-lg shrink-0"><i data-lucide="activity" class="text-purple-300"></i></div>
+                            <div>
+                                <h4 class="font-medium text-purple-100">Medical & Compliance</h4>
+                                <p class="text-sm text-purple-300/70">Strict rules, entities, and definite links.</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs text-purple-300/80 border border-purple-500/20">
+                            <strong class="text-purple-200">Example:</strong> Linking a specific medication directly to its known side effects.
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-xl flex flex-col gap-3 border border-purple-500/30 bg-purple-500/5 transition hover:bg-purple-500/10">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-purple-500/20 p-3 rounded-lg shrink-0"><i data-lucide="code-2" class="text-purple-300"></i></div>
+                            <div>
+                                <h4 class="font-medium text-purple-100">Code Bases</h4>
+                                <p class="text-sm text-purple-300/70">Functions, dependencies, and rigid syntax.</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-lg text-xs text-purple-300/80 border border-purple-500/20">
+                            <strong class="text-purple-200">Example:</strong> Identifying all functions that depend on the `authenticateUser()` method.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Slide 6: Types of Graph Search -->
+        <div class="slide px-6 md:px-8 justify-start md:justify-center pt-10 md:pt-0">
+            <h2 class="text-3xl font-semibold mb-2 text-center mt-12 md:mt-0">Types of Graph RAG Search</h2>
+            <p class="text-slate-400 text-center mb-12">Different methodologies for traversing the knowledge graph.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Local -->
+                <div class="glass-panel rounded-2xl overflow-hidden group">
+                    <div class="h-32 bg-slate-800/80 flex items-center justify-center border-b border-slate-700 relative overflow-hidden">
+                        <i data-lucide="target" class="w-16 h-16 text-cyan-500/20 absolute"></i>
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="4" fill="#06b6d4" />
+                            <circle cx="50" cy="50" r="15" fill="none" stroke="#06b6d4" stroke-dasharray="4" stroke-width="1" class="node-pulse" />
+                            <line x1="50" y1="50" x2="35" y2="35" stroke="#334155" stroke-width="1"/>
+                            <circle cx="35" cy="35" r="2" fill="#475569" />
+                        </svg>
+                    </div>
+                    <div class="p-6 text-center">
+                        <h3 class="text-xl font-semibold text-cyan-400 mb-3">Local Search</h3>
+                        <p class="text-sm text-slate-300 mb-2">Answers specific questions.</p>
+                        <div class="bg-slate-900/50 rounded p-2 text-xs text-slate-400 font-mono">
+                            Example: "I am using THIS specific component."
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global -->
+                <div class="glass-panel rounded-2xl overflow-hidden group">
+                    <div class="h-32 bg-slate-800/80 flex items-center justify-center border-b border-slate-700 relative overflow-hidden">
+                        <i data-lucide="globe" class="w-16 h-16 text-purple-500/20 absolute"></i>
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <!-- Cluster 1 -->
+                            <circle cx="30" cy="50" r="12" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="0.5"/>
+                            <circle cx="30" cy="50" r="2" fill="#a855f7" />
+                            <!-- Cluster 2 -->
+                            <circle cx="70" cy="50" r="12" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="0.5"/>
+                            <circle cx="70" cy="50" r="2" fill="#a855f7" />
+                            <line x1="42" y1="50" x2="58" y2="50" stroke="#a855f7" stroke-dasharray="2" />
+                        </svg>
+                    </div>
+                    <div class="p-6 text-center">
+                        <h3 class="text-xl font-semibold text-purple-400 mb-3">Global Search</h3>
+                        <p class="text-sm text-slate-300 mb-2">Answers broad questions by analyzing clusters.</p>
+                        <div class="bg-slate-900/50 rounded p-2 text-xs text-slate-400 font-mono">
+                            Example: "What is the overarching theme?"
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hybrid -->
+                <div class="glass-panel rounded-2xl overflow-hidden group">
+                    <div class="h-32 bg-slate-800/80 flex items-center justify-center border-b border-slate-700 relative overflow-hidden">
+                        <i data-lucide="git-merge" class="w-16 h-16 text-pink-500/20 absolute"></i>
+                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                            <!-- Global Base -->
+                            <circle cx="50" cy="50" r="25" fill="none" stroke="#ec4899" stroke-width="0.5" stroke-dasharray="2"/>
+                            <!-- Local Target -->
+                            <circle cx="50" cy="50" r="4" fill="#ec4899" class="node-pulse" />
+                            <circle cx="30" cy="30" r="2" fill="#64748b" />
+                            <line x1="50" y1="50" x2="30" y2="30" stroke="#ec4899" stroke-width="1"/>
+                        </svg>
+                    </div>
+                    <div class="p-6 text-center">
+                        <h3 class="text-xl font-semibold text-pink-400 mb-3">Hybrid Search</h3>
+                        <p class="text-sm text-slate-300 mb-2">Combines both methodologies.</p>
+                        <div class="bg-slate-900/50 rounded p-2 text-xs text-slate-400 font-mono">
+                            Uses both node-specific and cluster-wide analysis.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Slide State Management
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const progressBar = document.getElementById('progress-bar');
+        const indicatorsContainer = document.getElementById('indicators');
+
+        // Create Indicators
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('button');
+            dot.className = `w-2 h-2 rounded-full transition-all duration-300 focus:outline-none ${i === 0 ? 'bg-white w-6' : 'bg-slate-600 hover:bg-slate-500'}`;
+            dot.onclick = () => goToSlide(i);
+            indicatorsContainer.appendChild(dot);
+        }
+        const indicators = indicatorsContainer.children;
+
+        function updateUI() {
+            // Update Slides
+            slides.forEach((slide, index) => {
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            // Update Progress Bar
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            // Update Slide Number Indicator
+            const slideNumberEl = document.getElementById('slide-number');
+            if (slideNumberEl) {
+                slideNumberEl.innerText = `${currentSlide + 1} / ${totalSlides}`;
+            }
+
+            // Update Indicators
+            Array.from(indicators).forEach((dot, index) => {
+                if (index === currentSlide) {
+                    dot.className = 'w-6 h-2 rounded-full bg-white transition-all duration-300 focus:outline-none';
+                } else {
+                    dot.className = 'w-2 h-2 rounded-full bg-slate-600 hover:bg-slate-500 transition-all duration-300 focus:outline-none';
+                }
+            });
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateUI();
+            }
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            updateUI();
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'Space') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Initialize UI
+        updateUI();
+    </script>
+</body>
+</html>
