@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph RAG using Neo4j</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0F172A;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Background Grid */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.2;
+            background-image: radial-gradient(#475569 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+    </style>
+</head>
+<body class="selection:bg-indigo-500 selection:text-white flex flex-col items-center justify-center relative">
+
+    <div class="bg-grid"></div>
+
+    <!-- GitHub Corner -->
+    <a href="https://github.com/Abrash-Official/Graph_RAG_using_Neo4j" target="_blank" rel="noopener noreferrer" class="fixed top-6 right-6 text-slate-400 hover:text-white transition-colors text-4xl z-50 hover-lift" title="View Source on GitHub">
+        <i class="fab fa-github"></i>
+    </a>
+
+    <main class="w-full max-w-5xl mx-auto px-6 py-16 flex flex-col items-center justify-center min-h-screen">
+        <!-- Header -->
+        <header class="text-center mb-16">
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center text-4xl font-bold text-white shadow-2xl mx-auto mb-8">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-teal-400">Graph RAG</span> Dashboard
+            </h1>
+            <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                Explore the power of Retrieval-Augmented Generation using Knowledge Graphs. Select a module below to get started.
+            </p>
+        </header>
+
+        <!-- Navigation Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl relative z-10">
+            
+            <!-- 1. Chatbot -->
+            <a href="https://graph-rag-neo4j.netlify.app/" target="_blank" class="glass-panel p-8 rounded-2xl border-t-4 border-t-blue-500 hover-lift flex flex-col items-center text-center group relative overflow-hidden">
+                <div class="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-colors"></div>
+                <div class="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-robot text-3xl text-blue-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3">Interactive Chatbot</h2>
+                <p class="text-slate-400">Interact with the Graph RAG powered assistant to query knowledge graphs.</p>
+            </a>
+
+            <!-- 2. Architecture -->
+            <a href="graph_rag_architecture.html" class="glass-panel p-8 rounded-2xl border-t-4 border-t-indigo-500 hover-lift flex flex-col items-center text-center group relative overflow-hidden">
+                <div class="absolute inset-0 bg-indigo-500/5 group-hover:bg-indigo-500/10 transition-colors"></div>
+                <div class="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-network-wired text-3xl text-indigo-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3">Architecture View</h2>
+                <p class="text-slate-400">Visualize the data flow, internal components, and system architecture.</p>
+            </a>
+
+            <!-- 3. Graph RAG vs Standard RAG -->
+            <a href="graph_rag_vs_standard_rag.html" class="glass-panel p-8 rounded-2xl border-t-4 border-t-purple-500 hover-lift flex flex-col items-center text-center group relative overflow-hidden">
+                <div class="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors"></div>
+                <div class="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-balance-scale text-3xl text-purple-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3">Graph vs Standard</h2>
+                <p class="text-slate-400">Compare Graph RAG architectures with standard Vector RAG paradigms.</p>
+            </a>
+
+            <!-- 4. Endpoints -->
+            <a href="https://graph-rag-using-neo4j.onrender.com/docs" target="_blank" class="glass-panel p-8 rounded-2xl border-t-4 border-t-emerald-500 hover-lift flex flex-col items-center text-center group relative overflow-hidden">
+                <div class="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors"></div>
+                <div class="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-server text-3xl text-emerald-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3">API Endpoints</h2>
+                <p class="text-slate-400">Explore the FastAPI Swagger documentation to interact with backend endpoints.</p>
+            </a>
+
+        </div>
+    </main>
+
+</body>
+</html>
