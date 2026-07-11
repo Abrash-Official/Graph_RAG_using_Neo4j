@@ -1,10 +1,5 @@
 # Graph RAG using Neo4j
 
-### Application Links
-- **Main URL**: [https://graph-rag.netlify.app/](https://graph-rag.netlify.app/)
-- **Endpoint URL**: [https://graph-rag-using-neo4j.onrender.com/docs](https://graph-rag-using-neo4j.onrender.com/docs)
-- **Frontend URL**: [https://graph-rag-neo4j.netlify.app/](https://graph-rag-neo4j.netlify.app/)
-
 ### Environment Variables (`.env` structure)
 To run this application, you need to create a `.env` file and provide the following variables (you can also refer to `.env.example`):
 ```env
